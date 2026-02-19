@@ -11,6 +11,7 @@ interface VideoAdPlayerProps {
 }
 
 const AD_SOURCES = [
+    "/ad_sample.mp4",
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
     "https://www.w3schools.com/html/mov_bbb.mp4",
     "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",

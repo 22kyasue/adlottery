@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LottoVibe (Ad Lottery App)
+
+A "Watch-to-Earn" lottery application built with Next.js, Tailwind CSS, and the Google IMA SDK.
+
+## Features
+- **Watch & Win**: Users watch video ads to earn lottery tickets.
+- **Real Ad Integration**: Uses Google IMA SDK for professional video ad serving.
+- **Robust Fallback**: Automatically switches to demo videos or simulation mode if ads fail to load (ensuring users always get rewarded).
+- **Booster Mode**: Simulates 1.5x earning efficiency.
+- **Premium UI**: Dark mode design with gold accents and animations.
 
 ## Getting Started
 
-First, run the development server:
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2.  **Run Development Server**:
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Monetization Setup (Going Live)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Currently, the app uses a **Google Test Tag** so you can develop without violating policies. To earn real money:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1.  **Sign up for Google Ad Manager** or a similar video ad partner.
+2.  **Create a Video Ad Unit** and get your **VAST Inspector Tag URL**.
+3.  Open `lib/ad-config.ts`.
+4.  Replace the `TEST_AD_TAG_URL` with your production URL:
+    ```typescript
+    export const AD_CONFIG = {
+      // Replace this with your actual Ad Manager tag
+      TEST_AD_TAG_URL: "https://pubads.g.doubleclick.net/..." 
+    };
+    ```
+5.  **Deploy**: Your site must be on a public domain (not localhost) for real ads to serve.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Technologies
+- Next.js 16 (App Router)
+- Tailwind CSS & Framer Motion
+- Google IMA SDK
+- Lucide React Icons
