@@ -28,9 +28,25 @@ export function VideoAdPlayer({ onAdEnded, adSlotId }: VideoAdPlayerProps) {
     const [timeLeft, setTimeLeft] = useState(15);
     const [status, setStatus] = useState<'loading' | 'ready' | 'playing' | 'error' | 'ended'>('loading');
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const fallbackFiredRef = useRef(false);
+
+    // Safety timeout: if no video starts playing within 5s, skip to simulation
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (!fallbackFiredRef.current && status !== 'playing' && status !== 'ended') {
+                console.warn('VideoAdPlayer timeout — skipping to simulation');
+                fallbackFiredRef.current = true;
+                setStatus('error');
+                setErrorMsg('Ad timed out. Simulating reward...');
+                startSimulationFallback();
+            }
+        }, 5000);
+        return () => clearTimeout(timeout);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Attempt to load current source
     useEffect(() => {
+        if (fallbackFiredRef.current) return;
         setStatus('loading');
         setProgress(0);
         setErrorMsg(null);
@@ -40,6 +56,7 @@ export function VideoAdPlayer({ onAdEnded, adSlotId }: VideoAdPlayerProps) {
     }, [sourceIndex]);
 
     const handleCanPlay = () => {
+        if (fallbackFiredRef.current) return;
         if (status === 'loading' || status === 'error') {
             setStatus('ready');
             attemptPlay();
@@ -63,6 +80,7 @@ export function VideoAdPlayer({ onAdEnded, adSlotId }: VideoAdPlayerProps) {
     };
 
     const handleError = () => {
+        if (fallbackFiredRef.current) return;
         console.error(`Video source ${sourceIndex} failed.`);
         if (sourceIndex < AD_SOURCES.length - 1) {
             // Try next source

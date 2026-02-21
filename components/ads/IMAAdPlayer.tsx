@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { AD_CONFIG } from '@/lib/ad-config';
 
@@ -18,125 +18,161 @@ declare global {
 export function IMAAdPlayer({ onAdComplete, onAdError }: IMAAdPlayerProps) {
     const adContainerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [status, setStatus] = useState<'loading' | 'ready' | 'playing' | 'error'>('loading');
+    const [status, setStatus] = useState<'loading' | 'playing' | 'error'>('loading');
+
+    // Use refs for callbacks to avoid stale closures in IMA event listeners
+    const onAdCompleteRef = useRef(onAdComplete);
+    const onAdErrorRef = useRef(onAdError);
+    const errorFiredRef = useRef(false);
+
+    useEffect(() => { onAdCompleteRef.current = onAdComplete; }, [onAdComplete]);
+    useEffect(() => { onAdErrorRef.current = onAdError; }, [onAdError]);
+
+    const fireError = useCallback(() => {
+        if (errorFiredRef.current) return; // prevent double-fire
+        errorFiredRef.current = true;
+        setStatus('error');
+        onAdErrorRef.current();
+    }, []);
+
+    const fireComplete = useCallback(() => {
+        if (errorFiredRef.current) return;
+        onAdCompleteRef.current();
+    }, []);
 
     useEffect(() => {
-        // Load IMA SDK Script
+        // Safety timeout: if IMA doesn't load/play within 5 seconds, bail to fallback
+        const timeout = setTimeout(() => {
+            if (!errorFiredRef.current) {
+                console.warn('IMA timeout — switching to fallback');
+                fireError();
+            }
+        }, 5000);
+
+        // Load IMA SDK script
         const script = document.createElement('script');
         script.src = 'https://imasdk.googleapis.com/js/sdkloader/ima3.js';
         script.async = true;
-        script.onload = initIMA;
+
         script.onerror = () => {
-            console.error("Failed to load IMA SDK");
-            onAdError();
+            console.error('Failed to load IMA SDK script');
+            fireError();
         };
+
+        script.onload = () => {
+            try {
+                initIMA();
+            } catch (e) {
+                console.error('IMA init threw:', e);
+                fireError();
+            }
+        };
+
         document.body.appendChild(script);
 
         return () => {
+            clearTimeout(timeout);
             if (document.body.contains(script)) {
                 document.body.removeChild(script);
             }
-            // Cleanup would ideally destroy adsLoader, etc.
         };
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const initIMA = () => {
-        if (!window.google || !window.google.ima) {
-            onAdError();
+        if (!window.google?.ima) {
+            console.error('IMA SDK not available on window');
+            fireError();
             return;
         }
 
-        const google = window.google;
-        const ima = google.ima;
+        if (!adContainerRef.current || !videoRef.current) {
+            console.error('Ad container or video ref not ready');
+            fireError();
+            return;
+        }
 
-        if (!adContainerRef.current || !videoRef.current) return;
+        const ima = window.google.ima;
 
-        // Create the ad display container.
-        const adDisplayContainer = new ima.AdDisplayContainer(
-            adContainerRef.current,
-            videoRef.current
-        );
+        try {
+            const adDisplayContainer = new ima.AdDisplayContainer(
+                adContainerRef.current,
+                videoRef.current
+            );
+            adDisplayContainer.initialize();
 
-        // Initialize the container. Must be done via user action (which we are inside of, technically, 
-        // but often browsers require a fresh click. We'll try auto first).
-        adDisplayContainer.initialize();
+            const adsLoader = new ima.AdsLoader(adDisplayContainer);
 
-        // Create ads loader.
-        const adsLoader = new ima.AdsLoader(adDisplayContainer);
+            adsLoader.addEventListener(
+                ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+                (event: any) => {
+                    try {
+                        onAdsManagerLoaded(event, ima);
+                    } catch (e) {
+                        console.error('Ads manager setup threw:', e);
+                        fireError();
+                    }
+                },
+                false
+            );
 
-        // Listen and respond to ads loaded and error events.
-        adsLoader.addEventListener(
-            ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
-            (event: any) => onAdsManagerLoaded(event, ima, adDisplayContainer),
-            false
-        );
-        adsLoader.addEventListener(
-            ima.AdErrorEvent.Type.AD_ERROR,
-            (event: any) => {
-                console.error("IMA Ad Error:", event.getError());
-                onAdError();
-            },
-            false
-        );
+            adsLoader.addEventListener(
+                ima.AdErrorEvent.Type.AD_ERROR,
+                (event: any) => {
+                    console.error('IMA AdsLoader error:', event.getError());
+                    fireError();
+                },
+                false
+            );
 
-        // Request video ads.
-        const adsRequest = new ima.AdsRequest();
-        adsRequest.adTagUrl = AD_CONFIG.TEST_AD_TAG_URL;
+            const adsRequest = new ima.AdsRequest();
+            adsRequest.adTagUrl = AD_CONFIG.TEST_AD_TAG_URL;
 
-        // Specify the linear and nonlinear slot sizes. This helps the SDK to
-        // select the correct ad if multiple are returned.
-        const width = adContainerRef.current.clientWidth;
-        const height = adContainerRef.current.clientHeight;
-        adsRequest.linearAdSlotWidth = width;
-        adsRequest.linearAdSlotHeight = height;
+            const width = adContainerRef.current.clientWidth || 640;
+            const height = adContainerRef.current.clientHeight || 360;
+            adsRequest.linearAdSlotWidth = width;
+            adsRequest.linearAdSlotHeight = height;
+            adsRequest.nonLinearAdSlotWidth = width;
+            adsRequest.nonLinearAdSlotHeight = height / 3;
 
-        adsRequest.nonLinearAdSlotWidth = width;
-        adsRequest.nonLinearAdSlotHeight = height / 3;
-
-        adsLoader.requestAds(adsRequest);
+            adsLoader.requestAds(adsRequest);
+        } catch (e) {
+            console.error('IMA setup error:', e);
+            fireError();
+        }
     };
 
-    const onAdsManagerLoaded = (adsManagerLoadedEvent: any, ima: any, adDisplayContainer: any) => {
+    const onAdsManagerLoaded = (adsManagerLoadedEvent: any, ima: any) => {
         const adsRenderingSettings = new ima.AdsRenderingSettings();
         const adsManager = adsManagerLoadedEvent.getAdsManager(
             videoRef.current,
             adsRenderingSettings
         );
 
-        // Add listeners to the required events.
         adsManager.addEventListener(ima.AdErrorEvent.Type.AD_ERROR, (event: any) => {
-            console.error("Ad Manager Error:", event.getError());
-            onAdError();
+            console.error('Ad Manager Error:', event.getError());
+            fireError();
         });
 
         adsManager.addEventListener(ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED, () => {
-            // This is where you'd pause your content if it was mixed.
-            // For us, we only show ads.
             setStatus('playing');
         });
 
         adsManager.addEventListener(ima.AdEvent.Type.CONTENT_RESUME_REQUESTED, () => {
-            // Ad finished
-            onAdComplete();
+            fireComplete();
         });
 
         adsManager.addEventListener(ima.AdEvent.Type.ALL_ADS_COMPLETED, () => {
-            onAdComplete();
+            fireComplete();
         });
 
         try {
-            // Initialize the ads manager. Ad rules playlist will start at this time.
-            const width = adContainerRef.current!.clientWidth;
-            const height = adContainerRef.current!.clientHeight;
+            const width = adContainerRef.current?.clientWidth || 640;
+            const height = adContainerRef.current?.clientHeight || 360;
             adsManager.init(width, height, ima.ViewMode.NORMAL);
-
-            // Call play to start showing the ad. Single video and overlay ads will
-            // start at this time; the call will be ignored for ad rules.
             adsManager.start();
         } catch (adError) {
-            // An error may be thrown if there was a problem with the VAST response.
-            console.error("Ad Manager Start Error", adError);
-            onAdError();
+            console.error('Ad Manager start error:', adError);
+            fireError();
         }
     };
 

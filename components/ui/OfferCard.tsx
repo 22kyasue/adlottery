@@ -4,15 +4,18 @@ import { Ticket as TicketIcon } from 'lucide-react';
 
 interface OfferCardProps {
     offer: Offer;
-    onComplete: (offerId: string, reward: number) => void;
-    isCompleted: boolean;
+    onClick: (offerId: string, actionUrl: string) => void;
+    status: 'available' | 'pending' | 'completed';
 }
 
-export default function OfferCard({ offer, onComplete, isCompleted }: OfferCardProps) {
+export default function OfferCard({ offer, onClick, status }: OfferCardProps) {
     return (
-        <div className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${isCompleted
-            ? 'bg-gray-100 border-gray-300 opacity-75'
-            : 'bg-white border-yellow-400 shadow-lg hover:shadow-xl hover:-translate-y-1'
+        <div className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
+            status === 'completed'
+                ? 'bg-gray-100 border-gray-300 opacity-75'
+                : status === 'pending'
+                    ? 'bg-blue-50 border-blue-300 shadow-md'
+                    : 'bg-white border-yellow-400 shadow-lg hover:shadow-xl hover:-translate-y-1'
             }`}>
             <div className="flex items-start gap-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center text-3xl shadow-inner">
@@ -45,16 +48,26 @@ export default function OfferCard({ offer, onComplete, isCompleted }: OfferCardP
                             </span>
                         </div>
 
-                        <button
-                            onClick={() => onComplete(offer.id, offer.rewardTickets)}
-                            disabled={isCompleted}
-                            className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${isCompleted
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-md active:scale-95'
-                                }`}
-                        >
-                            {isCompleted ? 'CLAIMED' : 'GET'}
-                        </button>
+                        <div className="flex flex-col items-end gap-1">
+                            <button
+                                onClick={() => onClick(offer.id, offer.actionUrl ?? '#')}
+                                disabled={status === 'completed'}
+                                className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
+                                    status === 'completed'
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : status === 'pending'
+                                            ? 'bg-blue-500 hover:bg-blue-400 text-white shadow-md active:scale-95'
+                                            : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-md active:scale-95'
+                                    }`}
+                            >
+                                {status === 'completed' ? 'CLAIMED' : status === 'pending' ? 'PENDING' : 'GET'}
+                            </button>
+                            {status === 'pending' && (
+                                <span className="text-[11px] text-blue-500 font-medium">
+                                    Awaiting confirmation...
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

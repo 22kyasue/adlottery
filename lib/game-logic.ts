@@ -11,6 +11,81 @@ export const POOL_PERCENTAGE = 0.8;
 export const BASIC_AD_REVENUE = 10; // 10 Yen base revenue per ad
 export const BOOSTER_MULTIPLIER = 1.5;
 
+// ─── Diminishing Returns Tiers ────────────────────────────────────────────────
+// Tier 1: views  1-10  → 1 ad = 1 ticket
+// Tier 2: views 11-30  → 2 ads = 1 ticket
+// Tier 3: views 31-70  → 4 ads = 1 ticket
+// Tier 4: views 71+    → 10 ads = 1 ticket
+
+export const DIMINISHING_TIERS = [
+    { upTo: 10,       adsPerTicket: 1  },
+    { upTo: 30,       adsPerTicket: 2  },
+    { upTo: 70,       adsPerTicket: 4  },
+    { upTo: Infinity, adsPerTicket: 10 },
+] as const;
+
+/**
+ * Given N total valid views today, returns the total integer tickets earned.
+ * Pure function — no side effects, fully deterministic.
+ */
+export function calculateTotalTickets(views: number): number {
+    if (views <= 0) return 0;
+    let tickets = 0;
+
+    // Tier 1 (1-10): 1:1
+    const t1 = Math.min(views, 10);
+    tickets += t1;
+
+    // Tier 2 (11-30): 2:1
+    if (views > 10) {
+        const t2 = Math.min(views, 30) - 10;
+        tickets += Math.floor(t2 / 2);
+    }
+
+    // Tier 3 (31-70): 4:1
+    if (views > 30) {
+        const t3 = Math.min(views, 70) - 30;
+        tickets += Math.floor(t3 / 4);
+    }
+
+    // Tier 4 (71+): 10:1
+    if (views > 70) {
+        const t4 = views - 70;
+        tickets += Math.floor(t4 / 10);
+    }
+
+    return tickets;
+}
+
+/**
+ * Returns tier metadata for the given daily view count.
+ */
+export function getDailyViewMeta(views: number): {
+    currentTier: number;
+    adsPerTicket: number;
+    viewsUntilNextTicket: number;
+} {
+    const currentTickets = calculateTotalTickets(views);
+    // Find how many more views until next ticket
+    let nextViews = views + 1;
+    while (calculateTotalTickets(nextViews) === currentTickets && nextViews < views + 11) {
+        nextViews++;
+    }
+
+    // Determine which tier this view count falls into
+    let currentTier = 1;
+    let adsPerTicket = 1;
+    if (views >= 70) { currentTier = 4; adsPerTicket = 10; }
+    else if (views >= 30) { currentTier = 3; adsPerTicket = 4; }
+    else if (views >= 10) { currentTier = 2; adsPerTicket = 2; }
+
+    return {
+        currentTier,
+        adsPerTicket,
+        viewsUntilNextTicket: nextViews - views,
+    };
+}
+
 /** 
  * Simulates watching an ad and returns the rewards.
  * @param isBoosterActive bool
@@ -79,6 +154,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Reach 600k Power within 30 days.',
         rewardTickets: 500,
         icon: '🕴️',
+        actionUrl: 'https://example.com/offer?offer_id=offer-1',
         category: 'app',
         difficulty: 'Hard'
     },
@@ -88,6 +164,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Clear Scene 3 within 10 days.',
         rewardTickets: 150,
         icon: '🧚',
+        actionUrl: 'https://example.com/offer?offer_id=offer-2',
         category: 'app',
         difficulty: 'Medium'
     },
@@ -97,6 +174,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Issue a new card and spend ¥1000.',
         rewardTickets: 1000,
         icon: '💳',
+        actionUrl: 'https://example.com/offer?offer_id=offer-3',
         category: 'action',
         difficulty: 'Hard'
     },
@@ -106,6 +184,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Register for a free 7-day trial.',
         rewardTickets: 50,
         icon: '📰',
+        actionUrl: 'https://example.com/offer?offer_id=offer-4',
         category: 'action',
         difficulty: 'Easy'
     },
@@ -115,6 +194,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Watch the full 30s video.',
         rewardTickets: 10,
         icon: '🎬',
+        actionUrl: 'https://example.com/offer?offer_id=offer-5',
         category: 'action',
         difficulty: 'Easy'
     },
@@ -124,6 +204,7 @@ export const MOCK_OFFERS: Offer[] = [
         description: 'Tell us about your gaming preferences.',
         rewardTickets: 25,
         icon: '📝',
+        actionUrl: 'https://example.com/offer?offer_id=offer-6',
         category: 'survey',
         difficulty: 'Easy'
     }

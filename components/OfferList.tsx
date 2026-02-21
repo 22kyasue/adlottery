@@ -6,7 +6,7 @@ import { useGame } from '@/lib/GameContext';
 import OfferCard from './ui/OfferCard';
 
 export default function OfferList() {
-    const { state, completeOffer, isLoading } = useGame();
+    const { state, clickOffer } = useGame();
     const [filter, setFilter] = useState<'All' | 'Easy' | 'HighReward'>('All');
 
     const filteredOffers = MOCK_OFFERS.filter(offer => {
@@ -15,15 +15,13 @@ export default function OfferList() {
         return true;
     });
 
-    const handleComplete = async (offerId: string, reward: number) => {
-        if (state.completedOfferIds.includes(offerId)) return;
-
-        // In a real app, this would open the actionUrl
-        // window.open(offer.actionUrl, '_blank');
-
-        // Here we simulate completion
-        await completeOffer(offerId, reward);
+    const getOfferStatus = (offerId: string): 'available' | 'pending' | 'completed' => {
+        if (state.completedOfferIds.includes(offerId)) return 'completed';
+        if (state.clickedOfferIds.includes(offerId)) return 'pending';
+        return 'available';
     };
+
+    const pendingCount = MOCK_OFFERS.filter(o => getOfferStatus(o.id) === 'pending').length;
 
     return (
         <div className="space-y-6">
@@ -38,6 +36,13 @@ export default function OfferList() {
                 </div>
             </div>
 
+            {pendingCount > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                    {pendingCount} offer{pendingCount > 1 ? 's' : ''} pending confirmation.
+                    Rewards are granted once the provider verifies completion.
+                </div>
+            )}
+
             {/* Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                 {['All', 'Easy', 'HighReward'].map((f) => (
@@ -49,7 +54,7 @@ export default function OfferList() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                             }`}
                     >
-                        {f === 'HighReward' ? 'High Reward 🔥' : f}
+                        {f === 'HighReward' ? 'High Reward' : f}
                     </button>
                 ))}
             </div>
@@ -60,8 +65,8 @@ export default function OfferList() {
                     <OfferCard
                         key={offer.id}
                         offer={offer}
-                        onComplete={handleComplete}
-                        isCompleted={state.completedOfferIds.includes(offer.id)}
+                        onClick={clickOffer}
+                        status={getOfferStatus(offer.id)}
                     />
                 ))}
             </div>

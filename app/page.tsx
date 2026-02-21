@@ -1,27 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@/lib/GameContext';
+import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { AdOverlay } from '@/components/AdOverlay';
 import { BoosterOverlay } from '@/components/BoosterOverlay';
 import { TicketList } from '@/components/TicketList';
 import OfferList from '@/components/OfferList';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Clock, Zap, History, Coins } from 'lucide-react';
+import { CurrencyDisplay } from '@/components/CurrencyDisplay';
+import { ConversionPanel } from '@/components/ConversionPanel';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { CasinoTab } from '@/components/casino/CasinoTab';
+import { Trophy, Clock, Zap, History, Coins, LogOut, ChevronDown, Dice5 } from 'lucide-react';
+
+function AnimatedPoolCounter({ value }: { value: number }) {
+  const isFirstRender = useRef(true);
+  const motionValue = useMotionValue(value);
+  const springValue = useSpring(motionValue, { stiffness: 50, damping: 20 });
+  const [display, setDisplay] = useState(value.toLocaleString());
+
+  useEffect(() => {
+    // Skip spring animation on initial mount — show value instantly
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    motionValue.set(value);
+  }, [value, motionValue]);
+
+  useEffect(() => {
+    const unsubscribe = springValue.on('change', (latest: number) => {
+      setDisplay(Math.round(latest).toLocaleString());
+    });
+    return unsubscribe;
+  }, [springValue]);
+
+  return <>{display}</>;
+}
 
 export default function Home() {
   const { state, watchAd, activateBooster, isLoading } = useGame();
+  const { user, signOut } = useAuth();
   const [showAd, setShowAd] = useState(false);
   const [showBooster, setShowBooster] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'home' | 'earn'>('home');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'home' | 'earn' | 'casino'>('home');
 
-  // Countdown Logic
+  // Draw countdown
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
     const timer = setInterval(() => {
-      // Find next Sunday 8PM
       const now = new Date();
       const nextDraw = new Date();
       nextDraw.setDate(now.getDate() + (7 - now.getDay()) % 7);
@@ -39,7 +69,34 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  const isBoosterActive = state.boosteractiveUntil && state.boosteractiveUntil > Date.now();
+  // Booster countdown
+  const [boosterTimeLeft, setBoosterTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (!state.isBoosterActive || !state.boosterExpiresAt) {
+      setBoosterTimeLeft('');
+      return;
+    }
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const expires = new Date(state.boosterExpiresAt!);
+      const diff = expires.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setBoosterTimeLeft('Expired');
+        clearInterval(timer);
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setBoosterTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [state.isBoosterActive, state.boosterExpiresAt]);
 
   if (isLoading) {
     return (
@@ -52,7 +109,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white selection:bg-yellow-500/30 pb-24">
       {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/20 via-black to-black pointer-events-none" />
+      <div className={`fixed inset-0 z-0 pointer-events-none transition-all duration-1000 ${
+        state.isBoosterActive
+          ? 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-700/30 via-yellow-950/10 to-black'
+          : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/20 via-black to-black'
+      }`} />
 
       <div className="relative z-10 px-4 py-8 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8">
         {/* Header */}
@@ -63,11 +124,60 @@ export default function Home() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white">LottoVibe</h1>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm backdrop-blur-md">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="font-mono text-gray-200">{timeLeft}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm backdrop-blur-md">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <span className="font-mono text-gray-200">{timeLeft}</span>
+            </div>
+
+            {/* Profile Avatar */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(prev => !prev)}
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 pl-1 pr-2.5 py-1 backdrop-blur-md transition-colors hover:bg-white/10"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 text-xs font-bold text-black uppercase">
+                  {user?.email?.charAt(0) ?? '?'}
+                </div>
+                <ChevronDown className="h-3 w-3 text-gray-400" />
+              </button>
+
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <>
+                    {/* Backdrop to close menu */}
+                    <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/15 bg-[#1a1a1a] p-1 shadow-2xl backdrop-blur-xl"
+                    >
+                      <div className="px-3 py-2.5 border-b border-white/10">
+                        <p className="text-xs text-gray-500">Signed in as</p>
+                        <p className="text-sm text-white font-medium truncate">{user?.email}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          signOut();
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white mt-1"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign out
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </header>
+
+        {/* Dual Currency Display */}
+        <CurrencyDisplay />
 
         <AnimatePresence mode="wait">
           {currentTab === 'home' ? (
@@ -92,7 +202,7 @@ export default function Home() {
                   <h2 className="text-sm font-medium text-yellow-500/80 uppercase tracking-widest">Current Prize Pool</h2>
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl sm:text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 to-yellow-600 drop-shadow-2xl">
-                      ¥{state.poolBalance.toLocaleString()}
+                      ¥<AnimatedPoolCounter value={state.poolBalance} />
                     </span>
                   </div>
                   <p className="text-sm text-gray-400">
@@ -125,13 +235,13 @@ export default function Home() {
                 <div
                   onClick={() => setShowBooster(true)}
                   className={`group cursor-pointer relative overflow-hidden rounded-2xl border p-6 transition-all hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10
-                    ${isBoosterActive ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/10 bg-white/5'}`}
+                    ${state.isBoosterActive ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-white/10 bg-white/5'}`}
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl ${isBoosterActive ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'}`}>
+                    <div className={`p-3 rounded-xl ${state.isBoosterActive ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'}`}>
                       <Zap className="h-6 w-6" />
                     </div>
-                    {isBoosterActive && (
+                    {state.isBoosterActive && (
                       <div className="px-2 py-1 rounded bg-yellow-500/20 text-yellow-300 text-xs font-bold border border-yellow-500/20">
                         ACTIVE
                       </div>
@@ -139,12 +249,12 @@ export default function Home() {
                   </div>
                   <h3 className="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors">Booster Mode</h3>
                   <p className="text-sm text-gray-400 mt-1">1.5x efficiency on earnings.</p>
-                  {!isBoosterActive && (
+                  {!state.isBoosterActive && (
                     <p className="mt-4 text-xs font-semibold text-yellow-500 underline underline-offset-4">Activate Now →</p>
                   )}
-                  {isBoosterActive && (
-                    <p className="mt-4 text-xs/relaxed text-gray-500">
-                      Expires: {new Date(state.boosteractiveUntil!).toLocaleTimeString()}
+                  {state.isBoosterActive && boosterTimeLeft && (
+                    <p className="mt-4 text-xs font-mono text-yellow-400">
+                      Expires in: {boosterTimeLeft}
                     </p>
                   )}
                 </div>
@@ -156,7 +266,7 @@ export default function Home() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-white">Your Tickets</h3>
-                      <p className="text-xs text-purple-300 font-mono">Total: {state.userTickets.length}</p>
+                      <p className="text-xs text-purple-300 font-mono">Total: {state.totalTickets}</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-400">
@@ -167,13 +277,36 @@ export default function Home() {
 
               {/* Ticket List */}
               <section className="space-y-4">
-                <h3 className="text-xl font-bold text-white">Your Numbers</h3>
+                <h3 className="text-xl font-bold text-white">Your Tickets</h3>
                 <div className="rounded-2xl border border-white/10 bg-black/40 p-6 min-h-[200px]">
-                  <TicketList tickets={state.userTickets} />
+                  <TicketList
+                    organicTickets={state.organicTickets}
+                    convertedTickets={state.convertedTickets}
+                    isBoosterActive={state.isBoosterActive}
+                  />
                 </div>
               </section>
+
+              {/* Daily Ad Progress */}
+              {state.dailyAdViews > 0 && (
+                <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Today&apos;s Efficiency</span>
+                    <span className="font-mono text-white">
+                      Tier {state.currentTier} &middot; {state.adsPerTicket} ad{state.adsPerTicket > 1 ? 's' : ''}/ticket
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                    <span>{state.dailyAdViews} ads watched today</span>
+                    <span>{state.viewsUntilNextTicket} more for next ticket</span>
+                  </div>
+                </section>
+              )}
+
+              {/* Chip Conversion */}
+              <ConversionPanel />
             </motion.div>
-          ) : (
+          ) : currentTab === 'earn' ? (
             <motion.div
               key="earn"
               initial={{ opacity: 0, x: 20 }}
@@ -190,6 +323,15 @@ export default function Home() {
                 <OfferList />
               </div>
             </motion.div>
+          ) : (
+            <motion.div
+              key="casino"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <CasinoTab />
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -200,23 +342,33 @@ export default function Home() {
         <div className="flex items-center gap-1 p-1.5 bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl ring-1 ring-white/10">
           <button
             onClick={() => setCurrentTab('home')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${currentTab === 'home'
+            className={`flex items-center gap-1.5 px-4 sm:px-6 py-3 rounded-full font-bold text-sm transition-all ${currentTab === 'home'
                 ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/25'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
           >
-            <Trophy className="w-5 h-5" />
+            <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Lotto</span>
           </button>
           <button
             onClick={() => setCurrentTab('earn')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${currentTab === 'earn'
+            className={`flex items-center gap-1.5 px-4 sm:px-6 py-3 rounded-full font-bold text-sm transition-all ${currentTab === 'earn'
                 ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/25'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
           >
-            <Coins className="w-5 h-5" />
+            <Coins className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Earn</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('casino')}
+            className={`flex items-center gap-1.5 px-4 sm:px-6 py-3 rounded-full font-bold text-sm transition-all ${currentTab === 'casino'
+                ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/25'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+          >
+            <Dice5 className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Casino</span>
           </button>
         </div>
       </div>
@@ -233,7 +385,7 @@ export default function Home() {
       <BoosterOverlay
         isOpen={showBooster}
         onClose={() => setShowBooster(false)}
-        onActivate={activateBooster}
+        onActivate={(file) => activateBooster(file)}
       />
     </main>
   );
