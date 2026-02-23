@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { calculateTotalTickets, getDailyViewMeta } from '@/lib/game-logic';
 import { getCurrentWeekId, getMidnightJST } from '@/lib/utils';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,16 @@ export async function POST() {
 
         const userId = user.id;
 
-        // 2. Bot Detection (Speed Check)
+        // Rate limit check
+        const rl = checkRateLimit(userId, RATE_LIMITS.verifyAd);
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+        }
+
+        // 2. Bot Detection (Speed Check) + Idempotency dedup
         const { data: logs, error: logsError } = await supabaseAdmin
             .from('ad_watch_logs')
-            .select('watched_at')
+            .select('watched_at, metadata')
             .eq('user_id', userId)
             .order('watched_at', { ascending: false })
             .limit(1);
@@ -38,6 +45,12 @@ export async function POST() {
         if (lastLog) {
             const lastWatched = new Date(lastLog.watched_at);
             const diffSeconds = (now.getTime() - lastWatched.getTime()) / 1000;
+
+            // Idempotency: if a valid watch was logged < 5s ago, treat as duplicate retry
+            if (diffSeconds < 5 && lastLog.metadata?.status === 'valid') {
+                return NextResponse.json({ success: true, duplicate: true, message: 'Already processed' });
+            }
+
             if (diffSeconds < 30) {
                 isSuspicious = true;
             }

@@ -6,13 +6,17 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { AdOverlay } from '@/components/AdOverlay';
 import { BoosterOverlay } from '@/components/BoosterOverlay';
+import { PayoutSettings } from '@/components/PayoutSettings';
+import { PendingPayoutAlert } from '@/components/PendingPayoutAlert';
 import { TicketList } from '@/components/TicketList';
 import OfferList from '@/components/OfferList';
 import { CurrencyDisplay } from '@/components/CurrencyDisplay';
 import { ConversionPanel } from '@/components/ConversionPanel';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { CasinoTab } from '@/components/casino/CasinoTab';
-import { Trophy, Clock, Zap, History, Coins, LogOut, ChevronDown, Dice5 } from 'lucide-react';
+import { DrawResultModal } from '@/components/DrawResultModal';
+import { DrawHistory } from '@/components/DrawHistory';
+import { Trophy, Clock, Zap, History, Coins, LogOut, ChevronDown, Dice5, Wallet } from 'lucide-react';
 
 function AnimatedPoolCounter({ value }: { value: number }) {
   const isFirstRender = useRef(true);
@@ -40,11 +44,12 @@ function AnimatedPoolCounter({ value }: { value: number }) {
 }
 
 export default function Home() {
-  const { state, watchAd, activateBooster, isLoading } = useGame();
+  const { state, watchAd, activateBooster, isLoading, fetchError, refreshGameState } = useGame();
   const { user, signOut } = useAuth();
   const [showAd, setShowAd] = useState(false);
   const [showBooster, setShowBooster] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showPayoutSettings, setShowPayoutSettings] = useState(false);
   const [currentTab, setCurrentTab] = useState<'home' | 'earn' | 'casino'>('home');
 
   // Draw countdown
@@ -106,6 +111,20 @@ export default function Home() {
     );
   }
 
+  if (fetchError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white gap-4 px-4">
+        <p className="text-gray-400 text-sm text-center">{fetchError}</p>
+        <button
+          onClick={() => refreshGameState()}
+          className="rounded-lg bg-yellow-500 px-6 py-2.5 text-sm font-bold text-black hover:bg-yellow-400 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black text-white selection:bg-yellow-500/30 pb-24">
       {/* Background Ambience */}
@@ -161,9 +180,19 @@ export default function Home() {
                       <button
                         onClick={() => {
                           setShowProfileMenu(false);
-                          signOut();
+                          setShowPayoutSettings(true);
                         }}
                         className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white mt-1"
+                      >
+                        <Wallet className="h-4 w-4" />
+                        Payout Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          signOut();
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
                       >
                         <LogOut className="h-4 w-4" />
                         Sign out
@@ -175,6 +204,9 @@ export default function Home() {
             </div>
           </div>
         </header>
+
+        {/* Pending Payout Grace Period Alert */}
+        <PendingPayoutAlert onOpenPayoutSettings={() => setShowPayoutSettings(true)} />
 
         {/* Dual Currency Display */}
         <CurrencyDisplay />
@@ -303,6 +335,9 @@ export default function Home() {
                 </section>
               )}
 
+              {/* Past Draw Results */}
+              <DrawHistory />
+
               {/* Chip Conversion */}
               <ConversionPanel />
             </motion.div>
@@ -387,6 +422,13 @@ export default function Home() {
         onClose={() => setShowBooster(false)}
         onActivate={(file) => activateBooster(file)}
       />
+
+      <PayoutSettings
+        isOpen={showPayoutSettings}
+        onClose={() => setShowPayoutSettings(false)}
+      />
+
+      <DrawResultModal onOpenPayoutSettings={() => setShowPayoutSettings(true)} />
     </main>
   );
 }

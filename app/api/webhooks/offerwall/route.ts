@@ -1,4 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { safeCompare } from '@/lib/auth-helpers';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +30,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 async function handlePostback(params: URLSearchParams, body?: Record<string, string>) {
     const secret = params.get('secret');
-    if (secret !== process.env.OFFERWALL_SECRET_KEY) {
+    if (!safeCompare(secret, process.env.OFFERWALL_SECRET_KEY)) {
         return FORBIDDEN();
     }
 
@@ -58,6 +60,10 @@ async function handlePostback(params: URLSearchParams, body?: Record<string, str
         return ACK();
     }
 
+    // Apply configurable multiplier (defaults to 1.0)
+    const multiplier = parseFloat(process.env.OFFERWALL_MULTIPLIER || '1.0') || 1.0;
+    const scaledReward = Math.floor((rewardAmount || 0) * multiplier);
+
     // Call the atomic award RPC
     const { error } = await supabaseAdmin.rpc('award_offer_completion', {
         p_user_id: userId,
@@ -65,13 +71,28 @@ async function handlePostback(params: URLSearchParams, body?: Record<string, str
         p_provider: merged.provider || 'generic',
         p_provider_transaction_id: transactionId,
         p_reward_type: rewardType,
-        p_reward_amount: rewardAmount || 0,
+        p_reward_amount: scaledReward,
         p_raw_params: merged,
     });
 
     if (error) {
         console.error('[offerwall] RPC error:', error);
-        return new Response("error", { status: 500 });
+
+        // Store failed completion for retry (best-effort, don't block response)
+        try {
+            await supabaseAdmin.from('webhook_failures').insert({
+                provider: merged.provider || 'generic',
+                transaction_id: transactionId,
+                user_id: userId,
+                payload: merged,
+                error_message: error.message,
+            });
+        } catch (storeErr) {
+            console.error('[offerwall] Failed to store retry record:', storeErr);
+        }
+
+        // ACK to prevent provider retries — we handle retries internally
+        return ACK();
     }
 
     return ACK();
@@ -79,12 +100,18 @@ async function handlePostback(params: URLSearchParams, body?: Record<string, str
 
 // Tapjoy-style GET postback
 export async function GET(request: Request) {
+    const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+    const rl = checkRateLimit(ip, RATE_LIMITS.webhook);
+    if (!rl.allowed) return new Response("Rate limited", { status: 429 });
     const { searchParams } = new URL(request.url);
     return handlePostback(searchParams);
 }
 
 // ironSource-style POST postback
 export async function POST(request: Request) {
+    const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+    const rl = checkRateLimit(ip, RATE_LIMITS.webhook);
+    if (!rl.allowed) return new Response("Rate limited", { status: 429 });
     const { searchParams } = new URL(request.url);
     let body: Record<string, string> | undefined;
     try {

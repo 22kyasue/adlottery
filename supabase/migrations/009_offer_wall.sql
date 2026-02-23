@@ -63,7 +63,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_inserted BOOLEAN;
+  v_row_count INT;
   v_week_id TEXT;
 BEGIN
   -- Attempt insert (dedup on provider_transaction_id)
@@ -71,10 +71,10 @@ BEGIN
   VALUES (p_user_id, p_offer_id, p_provider, p_provider_transaction_id, p_reward_type, p_reward_amount, p_raw_params)
   ON CONFLICT (provider_transaction_id) DO NOTHING;
 
-  -- Check if the row was actually inserted
-  GET DIAGNOSTICS v_inserted = ROW_COUNT;
+  -- Check if the row was actually inserted (ROW_COUNT returns integer)
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
 
-  IF NOT v_inserted THEN
+  IF v_row_count = 0 THEN
     RETURN jsonb_build_object('success', true, 'already_awarded', true);
   END IF;
 

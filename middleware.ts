@@ -38,7 +38,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api/test-runner') ||
     pathname.startsWith('/api/admin') ||
-    pathname.startsWith('/api/webhooks');
+    pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/health') ||
+    pathname === '/tos' ||
+    pathname === '/privacy';
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

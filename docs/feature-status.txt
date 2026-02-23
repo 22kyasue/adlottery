@@ -1,0 +1,144 @@
+LottoVibe — Feature Status Overview
+Generated: 2026-02-21
+
+================================================================================
+FULLY WIRED (Frontend + Backend + DB)
+================================================================================
+
+1. Auth (Login/Signup)
+   - Pages: /login, /signup, /auth/callback
+   - AuthContext.tsx, cookie-based sessions via @supabase/ssr
+   - Middleware: session refresh, public route allowlist
+
+2. Ad Watching & Verification
+   - API: /api/verify-ad (POST)
+   - IMA SDK -> VideoAdPlayer -> Simulation fallback chain
+   - Bot detection: speed check < 30s -> silent shadowban
+   - Server-authoritative, logs to ad_watch_logs table
+
+3. Diminishing Returns (4 Tiers)
+   - Tier 1: views 1-10 = 1 ad per ticket
+   - Tier 2: views 11-30 = 2 ads per ticket
+   - Tier 3: views 31-70 = 4 ads per ticket
+   - Tier 4: views 71+ = 10 ads per ticket
+   - Pure function in game-logic.ts, enforced server-side
+
+4. Booster Mode (1.5x Output Multiplier)
+   - API: /api/activate-booster (POST)
+   - Chrome history upload: 500+ unique URLs, 30 days
+   - Multiplier on OUTPUT tickets only (views count normally)
+   - Fractional accumulation via increment_tickets_with_multiplier RPC
+   - 24-hour expiry
+
+5. Chip Conversion
+   - API: /api/convert-chips (POST), /api/conversion-cap (GET)
+   - 30% market cap enforced: (global_organic * 0.30) - global_converted
+   - Max 1000 chips per request
+   - Atomic RPC: convert_chips_to_tickets()
+
+6. Casino — Scratch Card
+   - API: /api/casino/scratch (POST)
+   - Fixed 10 chip cost, 6 outcome tiers
+   - 60% lose, 5% small coins, 15% small chips, 10% med coins, 4% med chips, 0.5% jackpot
+   - Component: ScratchOverlay.tsx (idle -> scratching -> result)
+
+7. Casino — Hi-Lo Card
+   - API: /api/casino/hilo (POST)
+   - Variable bet: 1-500 chips
+   - Odds-based multiplier, two cards drawn
+   - Component: HiLoOverlay.tsx (betting -> guessing -> revealing -> result)
+
+8. Casino — Blackjack
+   - 5 API routes: deal, hit, stand, state (GET), forfeit
+   - Server-side session storage in casino_sessions table
+   - Full game logic: natural blackjack, ace handling, dealer rules
+   - Component: BlackjackOverlay.tsx (7 phases)
+
+9. Casino — Roulette
+   - API: /api/casino/roulette (POST)
+   - Multi-bet support (1-3 bets per spin, no duplicate colors)
+   - Multipliers: black/red 2x, gold 5x
+   - 20-segment SVG wheel with framer-motion spin animation
+   - Components: RouletteOverlay.tsx, RouletteWheel.tsx
+
+10. Offer Wall (UI + Click Tracking)
+    - API: /api/offers/click (POST)
+    - 3-state cards: GET (yellow) -> PENDING (blue) -> CLAIMED (gray)
+    - Click state persisted in offer_clicks table
+    - sub_id1 (user ID) appended to tracking URLs
+    - Components: OfferList.tsx, OfferCard.tsx
+
+11. Offer Wall (S2S Webhook)
+    - API: /api/webhooks/offerwall (GET + POST)
+    - Secret key validation (OFFERWALL_SECRET_KEY)
+    - Normalizes params across providers (Tapjoy, ironSource, etc.)
+    - Dedup via provider_transaction_id unique index
+    - Atomic RPC: award_offer_completion()
+
+12. Prize Pool Display
+    - Atomic increment on every ad watch via increment_prize_pool RPC
+    - Animated counter with framer-motion spring
+    - Stored in weekly_prize_pool table
+
+================================================================================
+DATABASE MIGRATIONS (9 applied)
+================================================================================
+
+001_add_booster_columns.sql        — is_booster_active, booster_expires_at
+002_convert_chips_rpc.sql          — convert_chips_to_tickets() RPC
+003_booster_fractional_tickets.sql — booster_bonus_fractional, increment_tickets_with_multiplier()
+004_casino_rpcs.sql                — play_scratch(), play_hilo() RPCs
+005_blackjack_and_roulette.sql     — casino_sessions table, blackjack RPCs
+006_roulette_red_green.sql         — Roulette color fixes
+007_roulette_multibet.sql          — play_roulette_multi() RPC
+008_weekly_prize_pool.sql          — weekly_prize_pool table, increment/admin RPCs
+009_offer_wall.sql                 — offer_clicks, offer_completions, award_offer_completion()
+
+================================================================================
+KEY TABLES
+================================================================================
+
+users                — vibe_chips, vibe_coins, is_booster_active, booster_expires_at, is_shadowbanned
+weekly_tickets       — organic_tickets, converted_tickets, booster_bonus_fractional (per user/week)
+weekly_prize_pool    — base_amount (1.25M), ad_revenue_added, total_pool (generated)
+ad_watch_logs        — user_id, watched_at, metadata (status, week_id, boosted)
+casino_sessions      — Multi-step blackjack state (hands, deck, status, result, payout)
+offer_clicks         — Tracks user clicking GET on offers
+offer_completions    — Webhook-confirmed offer completions (deduped on provider_transaction_id)
+
+================================================================================
+ARCHITECTURE
+================================================================================
+
+- Next.js 16 App Router + Supabase (cookie-based auth)
+- Server-authoritative "dumb client" — frontend only renders what DB returns
+- Three Supabase clients:
+  - supabaseClient (browser, RLS-enabled)
+  - createSupabaseServerClient (server, cookie auth)
+  - supabaseAdmin (service role, unrestricted)
+- All balance changes via PL/pgSQL RPCs with atomic transactions
+- No localStorage — all state from Supabase on page load
+
+================================================================================
+INCOMPLETE / STUB FEATURES
+================================================================================
+
+1. Weekly Draw
+   - resetDraw() just shows alert() — no actual draw mechanism
+   - No winner selection, no prize distribution logic
+
+2. Referral System
+   - Signup form accepts referral code field
+   - No reward logic, no referral tracking table
+
+3. Real Ad Tags
+   - IMA SDK + VideoAdPlayer ready
+   - Needs real ad unit IDs from AdMob / Google Ad Manager
+
+4. Offer Provider Integration
+   - Webhook receiver fully built
+   - Needs Tapjoy/ironSource dashboard configuration + real tracking URLs
+
+5. Admin Revenue Sync
+   - Stub endpoint at /api/admin/sync-revenue
+   - Needs payment provider integration

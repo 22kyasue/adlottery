@@ -81,13 +81,13 @@ interface GameContextType {
     watchAd: () => Promise<{ ticketEarned: boolean } | null>;
     activateBooster: (file: File) => Promise<{ success: boolean; error?: string }>;
     clickOffer: (offerId: string, actionUrl: string) => Promise<void>;
-    resetDraw: () => void;
     refreshGameState: () => Promise<void>;
     convertChips: (amount: number) => Promise<ConvertChipsResult>;
     playScratch: () => Promise<ScratchResult>;
     playHiLo: (bet: number, guess: 'higher' | 'lower') => Promise<HiLoResult>;
     playRoulette: (bets: Array<{ color: string; bet: number }>) => Promise<RouletteResult>;
     isLoading: boolean;
+    fetchError: string | null;
 }
 
 const defaultState: GameState = {
@@ -113,6 +113,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [state, setState] = useState<GameState>(defaultState);
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
 
     // One-time cleanup: nuke stale localStorage from pre-refactor code
     useEffect(() => {
@@ -128,6 +129,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
 
         try {
+            setFetchError(null);
             const weekId = getCurrentWeekId();
 
             const [profileResult, ticketsResult, poolResult, clicksResult, completionsResult] = await Promise.all([
@@ -188,6 +190,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             }));
         } catch (error) {
             console.error('Failed to fetch game state:', error);
+            setFetchError('Failed to load game data. Please refresh.');
         } finally {
             setIsLoading(false);
         }
@@ -323,12 +326,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                 : [...prev.clickedOfferIds, offerId],
         }));
 
-        // Fire-and-forget click recording
-        fetch('/api/offers/click', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ offerId }),
-        }).catch(() => { /* non-blocking */ });
+        // Record click to DB (await so it persists before user navigates away)
+        try {
+            const res = await fetch('/api/offers/click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ offerId }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                console.error('[clickOffer] Failed to record click:', data);
+            }
+        } catch (err) {
+            console.error('[clickOffer] Network error recording click:', err);
+        }
     };
 
     const playScratch = async (): Promise<ScratchResult> => {
@@ -432,23 +443,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const resetDraw = () => {
-        alert('Weekly Draw Simulated! If you had the winning number, you\'d be rich!');
-    };
-
     return (
         <GameContext.Provider value={{
             state,
             watchAd,
             activateBooster,
             clickOffer,
-            resetDraw,
             refreshGameState: fetchGameState,
             convertChips,
             playScratch,
             playHiLo,
             playRoulette,
             isLoading,
+            fetchError,
         }}>
             {children}
         </GameContext.Provider>

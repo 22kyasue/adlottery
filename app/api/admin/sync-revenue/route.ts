@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getCurrentWeekId } from '@/lib/utils';
+import { verifyAdminKey } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,14 +13,7 @@ function fetchEstimatedAdRevenue(): { totalRevenue: number; source: string } {
 
 export async function POST(request: NextRequest) {
     try {
-        // Auth: API key check
-        const authHeader = request.headers.get('authorization') ?? '';
-        const expectedKey = process.env.ADMIN_API_KEY?.trim();
-
-        // Extract token: strip "Bearer " prefix (case-insensitive), trim whitespace
-        const token = authHeader.replace(/^bearer\s+/i, '').trim();
-
-        if (!expectedKey || !token || token !== expectedKey) {
+        if (!verifyAdminKey(request.headers.get('authorization'))) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

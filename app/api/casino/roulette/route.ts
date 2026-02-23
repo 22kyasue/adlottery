@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 const VALID_COLORS = ['black', 'red', 'gold'];
 
@@ -11,6 +12,11 @@ export async function POST(request: NextRequest) {
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const rl = checkRateLimit(user.id, RATE_LIMITS.casino);
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
         }
 
         const body = await request.json();

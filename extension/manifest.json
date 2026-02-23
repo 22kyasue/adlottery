@@ -1,0 +1,39 @@
+{
+    "manifest_version": 3,
+    "name": "LottoVibe Auto-Booster",
+    "version": "1.0.0",
+    "description": "Automatically validates your browsing history for LottoVibe Booster Mode.",
+    "permissions": [
+        "history"
+    ],
+    "host_permissions": [
+        "http://localhost:3000/*",
+        "http://localhost:3001/*",
+        "https://*.lottovibe.com/*",
+        "https://*.lottovibe.app/*",
+        "https://*/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://localhost:3000/*",
+                "http://localhost:3001/*",
+                "https://*.lottovibe.com/*",
+                "https://*.lottovibe.app/*",
+                "https://*/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "icons": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
+}

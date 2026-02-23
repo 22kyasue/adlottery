@@ -16,22 +16,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // 2. Check if booster is already active
-        const { data: userData } = await supabaseAdmin
-            .from('users')
-            .select('is_booster_active, booster_expires_at')
-            .eq('id', user.id)
-            .single();
-
-        if (userData?.is_booster_active && userData.booster_expires_at) {
-            const expires = new Date(userData.booster_expires_at);
-            if (expires > new Date()) {
-                return NextResponse.json({
-                    error: 'Booster is already active.',
-                    expiresAt: userData.booster_expires_at,
-                }, { status: 400 });
-            }
-        }
+        // 2. We no longer prevent reactivation. Active users can submit new data to reset their 24h timer.
 
         // 3. Parse uploaded file
         const formData = await request.formData();
@@ -59,7 +44,23 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // 4. Activate booster (validation passed — discard history data immediately)
+        // 4. Upload file to Supabase Storage for audit trail
+        const ext = file.name.endsWith('.csv') ? 'csv' : 'json';
+        const storagePath = `${user.id}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabaseAdmin.storage
+            .from('booster_uploads')
+            .upload(storagePath, Buffer.from(text), {
+                contentType: ext === 'csv' ? 'text/csv' : 'application/json',
+                upsert: false,
+            });
+
+        if (uploadError) {
+            console.error('Failed to upload booster file:', uploadError);
+            // Non-blocking: proceed with activation even if storage fails
+        }
+
+        // 5. Activate booster
         const expiresAt = new Date(Date.now() + BOOSTER_DURATION_MS).toISOString();
 
         const { error: updateError } = await supabaseAdmin
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
                 is_booster_active: true,
                 booster_expires_at: expiresAt,
                 updated_at: new Date().toISOString(),
+                ...(uploadError ? {} : { last_uploaded_file_url: storagePath }),
             })
             .eq('id', user.id);
 

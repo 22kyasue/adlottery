@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST() {
     try {
@@ -10,6 +11,11 @@ export async function POST() {
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const rl = checkRateLimit(user.id, RATE_LIMITS.casino);
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
         }
 
         // 2. Call the atomic RPC (cost is fixed at 10)

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Extension Test</title>
+</head>
+<body>
+    <div id="status">Waiting for extension...</div>
+    <button id="activate-btn" disabled>1-Click Auto Activate</button>
+    <pre id="output"></pre>
+
+    <script>
+        // Poll for extension
+        const timer = setInterval(() => {
+            if (window.LOTTOVIBE_EXTENSION_INSTALLED) {
+                document.getElementById('status').innerText = 'Extension Active!';
+                document.getElementById('activate-btn').disabled = false;
+                clearInterval(timer);
+            }
+        }, 100);
+
+        document.getElementById('activate-btn').addEventListener('click', () => {
+            document.getElementById('status').innerText = 'Requesting history...';
+            window.postMessage({ type: 'LOTTOVIBE_REQUEST_HISTORY' }, '*');
+        });
+
+        window.addEventListener('message', (event) => {
+            if (event.source !== window) return;
+
+            if (event.data.type === 'LOTTOVIBE_HISTORY_DATA') {
+                document.getElementById('status').innerText = 'Received Data!';
+                const historyData = event.data.data;
+                document.getElementById('output').innerText = `Got ${historyData.length} records.
+First record URL: ${historyData.length > 0 ? historyData[0].url : 'None'}`;
+            } else if (event.data.type === 'LOTTOVIBE_HISTORY_ERROR') {
+                document.getElementById('status').innerText = 'Extension Error!';
+                document.getElementById('output').innerText = event.data.error;
+            }
+        });
+    </script>
+</body>
+</html>
