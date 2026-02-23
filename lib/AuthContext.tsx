@@ -85,6 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // Fire-and-forget: process referral reward if user signed up with a referral code
+      fetch('/api/referral/apply', { method: 'POST' }).catch(() => {});
+    }
     return { error: error?.message ?? null };
   };
 
