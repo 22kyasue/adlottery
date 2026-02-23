@@ -9,7 +9,7 @@ export default function TermsOfService() {
                 <section>
                     <h2 className="text-lg font-semibold text-white">1. Acceptance of Terms</h2>
                     <p>
-                        By accessing or using LottoVibe, you agree to be bound by these Terms of Service.
+                        By accessing or using LottoAds, you agree to be bound by these Terms of Service.
                         If you do not agree, do not use the service.
                     </p>
                 </section>
@@ -17,7 +17,7 @@ export default function TermsOfService() {
                 <section>
                     <h2 className="text-lg font-semibold text-white">2. Eligibility</h2>
                     <p>
-                        You must be at least 18 years old to use LottoVibe. By using the service, you represent
+                        You must be at least 18 years old to use LottoAds. By using the service, you represent
                         that you meet this age requirement and that participation in ad-supported lottery services
                         is legal in your jurisdiction.
                     </p>
@@ -26,7 +26,7 @@ export default function TermsOfService() {
                 <section>
                     <h2 className="text-lg font-semibold text-white">3. How It Works</h2>
                     <p>
-                        LottoVibe is a free-to-enter lottery funded by advertising revenue. Users watch
+                        LottoAds is a free-to-enter lottery funded by advertising revenue. Users watch
                         advertisements to earn tickets. Each ticket grants one entry into the weekly prize draw.
                         Vibe Chips and Vibe Coins are virtual currencies with no monetary value outside the platform.
                     </p>
@@ -61,7 +61,7 @@ export default function TermsOfService() {
                 <section>
                     <h2 className="text-lg font-semibold text-white">7. Limitation of Liability</h2>
                     <p>
-                        LottoVibe is provided &quot;as is&quot; without warranties. We are not responsible for
+                        LottoAds is provided &quot;as is&quot; without warranties. We are not responsible for
                         technical failures, prize pool discrepancies, or service interruptions. Our total
                         liability is limited to the amount of your most recent prize payout.
                     </p>

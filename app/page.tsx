@@ -141,7 +141,7 @@ export default function Home() {
             <div className="rounded-lg bg-yellow-500/20 p-2">
               <Trophy className="h-6 w-6 text-yellow-500" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">LottoVibe</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">LottoAds</h1>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm backdrop-blur-md">

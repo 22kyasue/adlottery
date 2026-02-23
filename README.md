@@ -1,4 +1,4 @@
-# LottoVibe (Ad Lottery App)
+# LottoAds (Ad Lottery App)
 
 A "Watch-to-Earn" lottery application built with Next.js, Tailwind CSS, and the Google IMA SDK.
 

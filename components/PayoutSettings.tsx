@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, AlertCircle, CheckCircle2, Receipt, Clock, CreditCard, XCircle } from 'lucide-react';
+import { X, Wallet, AlertCircle, CheckCircle2, Receipt, Clock, CreditCard, XCircle, Copy, Check, Share2 } from 'lucide-react';
 import { Button } from './ui/Button';
+import { useAuth } from '@/lib/AuthContext';
 
 interface PayoutSettingsProps {
     isOpen: boolean;
@@ -37,6 +38,26 @@ function formatDate(iso: string) {
 
 export function PayoutSettings({ isOpen, onClose }: PayoutSettingsProps) {
     const [activeTab, setActiveTab] = useState<Tab>('settings');
+    const { user } = useAuth();
+    const [copied, setCopied] = useState(false);
+    const [copiedRef, setCopiedRef] = useState(false);
+
+    const referralCode = user?.id ? user.id.slice(0, 8).toUpperCase() : null;
+
+    const copyUserId = () => {
+        if (!user?.id) return;
+        navigator.clipboard.writeText(user.id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const copyReferralLink = () => {
+        if (!referralCode) return;
+        const url = `${window.location.origin}/signup?ref=${referralCode}`;
+        navigator.clipboard.writeText(url);
+        setCopiedRef(true);
+        setTimeout(() => setCopiedRef(false), 2000);
+    };
 
     // Settings state
     const [paypalEmail, setPaypalEmail] = useState('');
@@ -260,6 +281,54 @@ export function PayoutSettings({ isOpen, onClose }: PayoutSettingsProps) {
                                                 <Wallet className="h-4 w-4 mr-2" />
                                                 Save Payout Settings
                                             </Button>
+
+                                            {/* Referral Code */}
+                                            {referralCode && (
+                                                <div className="pt-2 border-t border-white/10 space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <p className="text-xs font-medium uppercase tracking-wider text-gray-600">Your Referral Code</p>
+                                                        <span className="text-xs text-gray-600">Share with friends</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 flex items-center justify-center rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
+                                                            <span className="text-base font-black font-mono tracking-widest text-yellow-400">
+                                                                {referralCode}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            onClick={copyReferralLink}
+                                                            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-300 hover:bg-white/10 hover:text-white transition-colors whitespace-nowrap"
+                                                        >
+                                                            {copiedRef
+                                                                ? <><Check className="h-3.5 w-3.5 text-green-400" /> Copied!</>
+                                                                : <><Share2 className="h-3.5 w-3.5" /> Copy Link</>
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600">
+                                                        Friends who sign up with your code will be linked to your account.
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Account ID */}
+                                            {user?.id && (
+                                                <div className="pt-2 border-t border-white/10 space-y-1.5">
+                                                    <p className="text-xs font-medium uppercase tracking-wider text-gray-600">Account ID</p>
+                                                    <button
+                                                        onClick={copyUserId}
+                                                        className="w-full flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-left hover:border-white/20 transition-colors group"
+                                                    >
+                                                        <span className="text-xs font-mono text-gray-500 truncate group-hover:text-gray-400 transition-colors">
+                                                            {user.id}
+                                                        </span>
+                                                        {copied
+                                                            ? <Check className="h-3.5 w-3.5 text-green-400 shrink-0" />
+                                                            : <Copy className="h-3.5 w-3.5 text-gray-600 shrink-0 group-hover:text-gray-400 transition-colors" />
+                                                        }
+                                                    </button>
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>

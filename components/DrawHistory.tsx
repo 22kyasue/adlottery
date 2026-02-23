@@ -77,7 +77,7 @@ export function DrawHistory() {
                                     )}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                    Ticket #{draw.winningTicketNumber} of {draw.totalTickets.toLocaleString()}
+                                    #{String(draw.winningTicketNumber).padStart(7, '0')} of {draw.totalTickets.toLocaleString()}
                                     {' '}&middot; Winner: {draw.winnerHint}
                                 </p>
                             </div>

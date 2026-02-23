@@ -78,19 +78,19 @@ export function BoosterOverlay({ isOpen, onClose, onActivate }: BoosterOverlayPr
 
     useEffect(() => {
         // Fallback ping to ask the extension if it is there
-        window.postMessage({ type: 'LOTTOVIBE_PING_EXTENSION' }, '*');
+        window.postMessage({ type: 'LOTTOADS_PING_EXTENSION' }, '*');
 
         // Listen for standard custom event (bulletproof)
         const handleCustomEvent = () => setExtensionInstalled(true);
-        document.addEventListener('lottovibe-extension-ready', handleCustomEvent);
+        document.addEventListener('lottoads-extension-ready', handleCustomEvent);
 
         // Listen for history data from extension
         const handleMessage = (event: MessageEvent) => {
             if (event.source !== window) return;
 
-            if (event.data.type === 'LOTTOVIBE_EXTENSION_READY') {
+            if (event.data.type === 'LOTTOADS_EXTENSION_READY') {
                 setExtensionInstalled(true);
-            } else if (event.data.type === 'LOTTOVIBE_HISTORY_DATA') {
+            } else if (event.data.type === 'LOTTOADS_HISTORY_DATA') {
                 const historyData = event.data.data;
                 setIsFetchingHistory(false);
 
@@ -99,7 +99,7 @@ export function BoosterOverlay({ isOpen, onClose, onActivate }: BoosterOverlayPr
                 setPhase('preview');
 
                 // We'll create the file later when they confirm
-            } else if (event.data.type === 'LOTTOVIBE_HISTORY_ERROR') {
+            } else if (event.data.type === 'LOTTOADS_HISTORY_ERROR') {
                 setIsFetchingHistory(false);
                 setError(`Extension error: ${event.data.error}`);
             }
@@ -108,14 +108,14 @@ export function BoosterOverlay({ isOpen, onClose, onActivate }: BoosterOverlayPr
         window.addEventListener('message', handleMessage);
         return () => {
             window.removeEventListener('message', handleMessage);
-            document.removeEventListener('lottovibe-extension-ready', handleCustomEvent);
+            document.removeEventListener('lottoads-extension-ready', handleCustomEvent);
         };
     }, []);
 
     const handleAutoActivate = () => {
         setIsFetchingHistory(true);
         setError(null);
-        window.postMessage({ type: 'LOTTOVIBE_REQUEST_HISTORY' }, '*');
+        window.postMessage({ type: 'LOTTOADS_REQUEST_HISTORY' }, '*');
     };
 
     const handleActivateFile = async (file: File) => {
@@ -146,7 +146,7 @@ export function BoosterOverlay({ isOpen, onClose, onActivate }: BoosterOverlayPr
 
         // Create the virtual file now that they've confirmed
         const blob = new Blob([JSON.stringify(extractedData)], { type: 'application/json' });
-        const file = new File([blob], 'lottovibe_history.json', { type: 'application/json' });
+        const file = new File([blob], 'lottoads_history.json', { type: 'application/json' });
 
         await handleActivateFile(file);
     };
@@ -341,7 +341,7 @@ export function BoosterOverlay({ isOpen, onClose, onActivate }: BoosterOverlayPr
                                                                 <li>Drag the downloaded file into the upload box above.</li>
                                                             </ol>
                                                             <p className="text-yellow-500 pt-2 border-t border-white/10 mt-2">
-                                                                <strong>Want this to be automatic?</strong> Install the verified <span className="text-white font-bold">LottoVibe Auto-Booster</span> extension to enable 1-Click activation!
+                                                                <strong>Want this to be automatic?</strong> Install the verified <span className="text-white font-bold">LottoAds Auto-Booster</span> extension to enable 1-Click activation!
                                                             </p>
                                                         </div>
                                                     </motion.div>

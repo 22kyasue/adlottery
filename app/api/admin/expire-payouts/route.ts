@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { verifyAdminKey } from '@/lib/auth-helpers';
+import { verifyAdminOrCron } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        if (!verifyAdminKey(request.headers.get('authorization'))) {
+        if (!verifyAdminOrCron(request)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

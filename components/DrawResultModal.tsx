@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, X, PartyPopper, Frown } from 'lucide-react';
+import { Trophy, X, PartyPopper, Frown, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
+import confetti from 'canvas-confetti';
 
 interface DrawResult {
     id: string;
@@ -21,11 +22,41 @@ interface DrawResultModalProps {
     onOpenPayoutSettings: () => void;
 }
 
-const SEEN_DRAW_KEY = 'lottovibe-last-seen-draw';
+const SEEN_DRAW_KEY = 'lottoads-last-seen-draw';
+
+function useCountUp(target: number, duration: number, active: boolean): number {
+    const [value, setValue] = useState(0);
+    const rafRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!active) return;
+        const start = performance.now();
+
+        const tick = (now: number) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setValue(Math.round(eased * target));
+            if (progress < 1) {
+                rafRef.current = requestAnimationFrame(tick);
+            }
+        };
+
+        rafRef.current = requestAnimationFrame(tick);
+        return () => {
+            if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+        };
+    }, [active, target, duration]);
+
+    return value;
+}
 
 export function DrawResultModal({ onOpenPayoutSettings }: DrawResultModalProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [result, setResult] = useState<DrawResult | null>(null);
+    // Winner reveal phases: 'reveal' → 'result'
+    const [phase, setPhase] = useState<'reveal' | 'result'>('reveal');
 
     const fetchLatestDraw = useCallback(async () => {
         try {
@@ -40,6 +71,7 @@ export function DrawResultModal({ onOpenPayoutSettings }: DrawResultModalProps) 
             const lastSeen = localStorage.getItem(SEEN_DRAW_KEY);
             if (lastSeen === latest.id) return;
 
+            setPhase('reveal');
             setResult(latest);
             setIsOpen(true);
         } catch {
@@ -52,6 +84,41 @@ export function DrawResultModal({ onOpenPayoutSettings }: DrawResultModalProps) 
         const timer = setTimeout(fetchLatestDraw, 2000);
         return () => clearTimeout(timer);
     }, [fetchLatestDraw]);
+
+    // Winner confetti + phase transition
+    useEffect(() => {
+        if (!isOpen || !result?.isYou) return;
+
+        // After 1.5s reveal spinner, fire confetti and switch to result phase
+        const phaseTimer = setTimeout(() => {
+            setPhase('result');
+
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.4 },
+                colors: ['#FFD700', '#FFF', '#FF6B6B', '#4CAF50'],
+            });
+
+            // Second burst at 500ms
+            setTimeout(() => {
+                confetti({
+                    particleCount: 80,
+                    spread: 55,
+                    origin: { y: 0.35 },
+                    colors: ['#FFD700', '#FFF176', '#FFEB3B'],
+                });
+            }, 500);
+        }, 1500);
+
+        return () => clearTimeout(phaseTimer);
+    }, [isOpen, result?.isYou]);
+
+    const displayAmount = useCountUp(
+        result?.prizeAmount ?? 0,
+        1200,
+        phase === 'result' && result?.isYou === true
+    );
 
     const handleClose = () => {
         if (result) {
@@ -97,76 +164,100 @@ export function DrawResultModal({ onOpenPayoutSettings }: DrawResultModalProps) 
                                 {/* Gold gradient header */}
                                 <div className="relative overflow-hidden bg-gradient-to-b from-yellow-600/30 via-yellow-900/20 to-transparent px-6 pt-8 pb-6 text-center">
                                     <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-yellow-500/5 via-yellow-300/10 to-yellow-500/5" />
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                        className="relative"
-                                    >
-                                        <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/20 ring-2 ring-yellow-500/40">
-                                            <PartyPopper className="h-10 w-10 text-yellow-400" />
-                                        </div>
-                                        <h2 className="text-2xl font-black text-yellow-300">
-                                            YOU WON!
-                                        </h2>
-                                    </motion.div>
+
+                                    <AnimatePresence mode="wait">
+                                        {phase === 'reveal' ? (
+                                            /* REVEAL PHASE: spinner */
+                                            <motion.div
+                                                key="reveal"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                className="relative flex flex-col items-center gap-4"
+                                            >
+                                                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/20 ring-2 ring-yellow-500/40">
+                                                    <Loader2 className="h-10 w-10 text-yellow-400 animate-spin" />
+                                                </div>
+                                                <p className="text-lg font-semibold text-yellow-200">Checking results…</p>
+                                            </motion.div>
+                                        ) : (
+                                            /* RESULT PHASE: trophy + YOU WON */
+                                            <motion.div
+                                                key="result"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ type: 'spring', stiffness: 200 }}
+                                                className="relative"
+                                            >
+                                                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-yellow-500/20 ring-2 ring-yellow-500/40">
+                                                    <PartyPopper className="h-10 w-10 text-yellow-400" />
+                                                </div>
+                                                <h2 className="text-2xl font-black text-yellow-300">
+                                                    YOU WON!
+                                                </h2>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
 
-                                <div className="px-6 pb-6 space-y-4">
-                                    <div className="text-center">
+                                <AnimatePresence>
+                                    {phase === 'result' && (
                                         <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
+                                            initial={{ opacity: 0, y: 16 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.4 }}
+                                            transition={{ duration: 0.4 }}
+                                            className="px-6 pb-6 space-y-4"
                                         >
-                                            <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 to-yellow-500">
-                                                {'\u00A5'}{result.prizeAmount.toLocaleString()}
-                                            </span>
-                                        </motion.div>
-                                        <p className="mt-1 text-sm text-gray-400">
-                                            Week {result.weekId} &middot; Ticket #{result.winningTicketNumber} of {result.totalTickets.toLocaleString()}
-                                        </p>
-                                    </div>
+                                            <div className="text-center">
+                                                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-100 to-yellow-500">
+                                                    {'\u00A5'}{displayAmount.toLocaleString()}
+                                                </span>
+                                                <p className="mt-1 text-sm text-gray-400">
+                                                    Week {result.weekId} &middot; #{String(result.winningTicketNumber).padStart(7, '0')} of {result.totalTickets.toLocaleString()}
+                                                </p>
+                                            </div>
 
-                                    {result.payoutStatus === 'ready' ? (
-                                        <>
-                                            <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-200 text-center">
-                                                Your payout is ready — we&apos;ll send it to your registered account!
-                                            </div>
-                                            <Button
-                                                variant="gold"
-                                                size="lg"
-                                                onClick={handleClose}
-                                                className="w-full"
-                                            >
-                                                Awesome!
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-200 text-center">
-                                                Set up your payout method to claim your prize!
-                                            </div>
-                                            <Button
-                                                variant="gold"
-                                                size="lg"
-                                                onClick={handleClaimPrize}
-                                                className="w-full"
-                                            >
-                                                Claim Your Prize
-                                            </Button>
-                                            <button
-                                                onClick={handleClose}
-                                                className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                                            >
-                                                I&apos;ll do it later
-                                            </button>
-                                        </>
+                                            {result.payoutStatus === 'ready' ? (
+                                                <>
+                                                    <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-200 text-center">
+                                                        Your payout is ready — we&apos;ll send it to your registered account!
+                                                    </div>
+                                                    <Button
+                                                        variant="gold"
+                                                        size="lg"
+                                                        onClick={handleClose}
+                                                        className="w-full"
+                                                    >
+                                                        Awesome!
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-200 text-center">
+                                                        Set up your payout method to claim your prize!
+                                                    </div>
+                                                    <Button
+                                                        variant="gold"
+                                                        size="lg"
+                                                        onClick={handleClaimPrize}
+                                                        className="w-full"
+                                                    >
+                                                        Claim Your Prize
+                                                    </Button>
+                                                    <button
+                                                        onClick={handleClose}
+                                                        className="w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                                                    >
+                                                        I&apos;ll do it later
+                                                    </button>
+                                                </>
+                                            )}
+                                        </motion.div>
                                     )}
-                                </div>
+                                </AnimatePresence>
                             </div>
                         ) : (
-                            /* NON-WINNER VIEW */
+                            /* NON-WINNER VIEW — unchanged */
                             <div className="relative">
                                 <div className="relative overflow-hidden bg-gradient-to-b from-gray-800/30 to-transparent px-6 pt-8 pb-6 text-center">
                                     <motion.div
@@ -192,7 +283,7 @@ export function DrawResultModal({ onOpenPayoutSettings }: DrawResultModalProps) 
                                             {'\u00A5'}{result.prizeAmount.toLocaleString()}
                                         </span>
                                         <p className="text-sm text-gray-500">
-                                            Winning ticket #{result.winningTicketNumber} of {result.totalTickets.toLocaleString()}
+                                            #{String(result.winningTicketNumber).padStart(7, '0')} of {result.totalTickets.toLocaleString()}
                                         </p>
                                         <p className="text-xs text-gray-600">
                                             Winner: {result.winnerHint}

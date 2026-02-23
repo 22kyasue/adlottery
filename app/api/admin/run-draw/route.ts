@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getCurrentWeekId } from '@/lib/utils';
-import { verifyAdminKey } from '@/lib/auth-helpers';
+import { verifyAdminOrCron } from '@/lib/auth-helpers';
+import { sendWinnerNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        if (!verifyAdminKey(request.headers.get('authorization'))) {
+        if (!verifyAdminOrCron(request)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -31,6 +32,21 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`[run-draw] Draw completed for ${weekId}:`, data);
+
+        // Send winner notification email (fire-and-forget)
+        if (data?.winner_user_id) {
+            try {
+                const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(data.winner_user_id);
+                if (userError) {
+                    console.error('[run-draw] Failed to fetch winner user:', userError);
+                } else if (userData?.user?.email) {
+                    const emailSent = await sendWinnerNotification(userData.user.email, weekId, data.prize_amount);
+                    console.log(`[run-draw] Winner email ${emailSent ? 'sent' : 'failed'} to ${userData.user.email}`);
+                }
+            } catch (emailErr) {
+                console.error('[run-draw] Winner email error (non-fatal):', emailErr);
+            }
+        }
 
         return NextResponse.json({
             success: true,

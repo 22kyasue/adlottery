@@ -45,7 +45,7 @@ export default function LoginPage() {
             <div className="rounded-xl bg-yellow-500/20 p-3 ring-1 ring-yellow-500/30">
               <Trophy className="h-8 w-8 text-yellow-500" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">LottoVibe</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">LottoAds</h1>
             <p className="text-sm text-gray-400">Sign in to your account</p>
           </div>
 

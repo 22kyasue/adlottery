@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { motion } from 'framer-motion';
 import { Trophy, CheckCircle, UserPlus } from 'lucide-react';
@@ -8,10 +9,16 @@ import Link from 'next/link';
 
 export default function SignupPage() {
   const { signUp } = useAuth();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
+
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, [searchParams]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -60,7 +67,7 @@ export default function SignupPage() {
             <div className="rounded-xl bg-yellow-500/20 p-3 ring-1 ring-yellow-500/30">
               <Trophy className="h-8 w-8 text-yellow-500" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">LottoVibe</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">LottoAds</h1>
             <p className="text-sm text-gray-400">Create your account</p>
           </div>
 
