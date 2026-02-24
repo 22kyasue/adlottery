@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { GameProvider } from "@/lib/GameContext";
 import { AgeGate } from "@/components/AgeGate";
+import { LaunchBonusBanner } from "@/components/LaunchBonusBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,6 +40,7 @@ export default function RootLayout({
         <AuthProvider>
           <GameProvider>
             <AgeGate />
+            <LaunchBonusBanner />
             <div className="relative flex min-h-screen flex-col">
               <main className="flex-1">{children}</main>
             </div>

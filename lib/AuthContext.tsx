@@ -86,8 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (!error) {
-      // Fire-and-forget: process referral reward if user signed up with a referral code
+      // Fire-and-forget: referral reward
       fetch('/api/referral/apply', { method: 'POST' }).catch(() => {});
+      // Early adopter launch campaign reward
+      fetch('/api/rewards/early-adopter', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data?.success) {
+            sessionStorage.setItem('launch_bonus_pending', '1');
+          }
+        })
+        .catch(() => {});
     }
     return { error: error?.message ?? null };
   };
