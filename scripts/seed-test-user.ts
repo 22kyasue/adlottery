@@ -6,7 +6,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-const TEST_EMAIL = 'test@lottovibe.com';
+const TEST_EMAIL = 'test@lottoads.com';
 const TEST_PASSWORD = 'test1234';
 
 async function seed() {

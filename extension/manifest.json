@@ -1,16 +1,16 @@
 {
     "manifest_version": 3,
-    "name": "LottoVibe Auto-Booster",
+    "name": "LottoAds Auto-Booster",
     "version": "1.0.0",
-    "description": "Automatically validates your browsing history for LottoVibe Booster Mode.",
+    "description": "Automatically validates your browsing history for LottoAds Booster Mode.",
     "permissions": [
         "history"
     ],
     "host_permissions": [
         "http://localhost:3000/*",
         "http://localhost:3001/*",
-        "https://*.lottovibe.com/*",
-        "https://*.lottovibe.app/*",
+        "https://*.lottoads.com/*",
+        "https://*.lottoads.app/*",
         "https://*/*"
     ],
     "background": {
@@ -21,8 +21,8 @@
             "matches": [
                 "http://localhost:3000/*",
                 "http://localhost:3001/*",
-                "https://*.lottovibe.com/*",
-                "https://*.lottovibe.app/*",
+                "https://*.lottoads.com/*",
+                "https://*.lottoads.app/*",
                 "https://*/*"
             ],
             "js": [
