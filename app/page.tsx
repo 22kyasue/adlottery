@@ -17,6 +17,7 @@ import { CasinoTab } from '@/components/casino/CasinoTab';
 import { DrawResultModal } from '@/components/DrawResultModal';
 import { DrawHistory } from '@/components/DrawHistory';
 import { Trophy, Clock, Zap, History, Coins, LogOut, ChevronDown, Dice5, Wallet } from 'lucide-react';
+import Link from 'next/link';
 
 function AnimatedPoolCounter({ value }: { value: number }) {
   const isFirstRender = useRef(true);
@@ -369,6 +370,13 @@ export default function Home() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Footer */}
+        <footer className="flex items-center justify-center gap-4 pt-4 pb-2 text-xs text-gray-600">
+          <Link href="/terms" className="hover:text-gray-400 transition-colors">Terms of Service</Link>
+          <span>·</span>
+          <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
+        </footer>
 
       </div>
 
