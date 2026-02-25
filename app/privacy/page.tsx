@@ -1,94 +1,120 @@
+import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Privacy Policy — LottoAds',
+    description: 'Privacy Policy for LottoAds. Learn how we collect and use your data.',
+};
+
 export default function PrivacyPolicy() {
     return (
-        <main className="min-h-screen bg-black text-white px-4 py-12 max-w-3xl mx-auto">
-            <h1 className="text-3xl font-bold text-yellow-400 mb-8">Privacy Policy</h1>
+        <div className="min-h-screen bg-black text-white">
+            <div className="mx-auto max-w-2xl px-6 py-12">
+                <div className="mb-10">
+                    <Link href="/" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">
+                        ← Back to LottoAds
+                    </Link>
+                    <h1 className="mt-6 text-3xl font-black text-white">Privacy Policy</h1>
+                    <p className="mt-2 text-sm text-gray-500">Effective date: February 25, 2026</p>
+                </div>
 
-            <div className="prose prose-invert prose-sm max-w-none space-y-6 text-gray-300">
-                <p><strong>Last updated:</strong> February 2026</p>
+                <div className="space-y-8 text-sm leading-relaxed text-gray-300">
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">1. Information We Collect</h2>
-                    <p>We collect the following information:</p>
-                    <ul className="list-disc pl-6 space-y-1">
-                        <li><strong>Account information:</strong> Email address used for authentication</li>
-                        <li><strong>Usage data:</strong> Ad watch logs, ticket earnings, game activity</li>
-                        <li><strong>Payout information:</strong> PayPal or Wise email for prize delivery</li>
-                        <li><strong>Browser history (optional):</strong> Only if you voluntarily upload it
-                            for Booster Mode activation. We check URL count and date range only.</li>
-                    </ul>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">1. Overview</h2>
+                        <p>LottoAds (&quot;we&quot;, &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.</p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">2. How We Use Your Information</h2>
-                    <ul className="list-disc pl-6 space-y-1">
-                        <li>To operate the lottery and process prize payouts</li>
-                        <li>To detect and prevent fraud and bot activity</li>
-                        <li>To improve the service and user experience</li>
-                        <li>To send prize notifications and service updates</li>
-                    </ul>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">2. Information We Collect</h2>
+                        <ul className="list-disc space-y-2 pl-5">
+                            <li><strong className="text-white">Account information:</strong> Email address used for authentication.</li>
+                            <li><strong className="text-white">Usage data:</strong> Ad watch logs, ticket earnings, game activity, and draw participation.</li>
+                            <li><strong className="text-white">Payout information:</strong> PayPal or Wise email address, provided voluntarily when claiming a prize.</li>
+                            <li><strong className="text-white">Referral data:</strong> Referral codes used at signup, to attribute rewards correctly.</li>
+                            <li><strong className="text-white">Browser history (optional):</strong> Voluntarily uploaded to activate Booster Mode. We check URL count and date range only — this data is not stored permanently.</li>
+                            <li><strong className="text-white">Technical data:</strong> IP address, browser type, and device information for security and fraud prevention.</li>
+                        </ul>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">3. Third-Party Services</h2>
-                    <p>We use the following third-party services:</p>
-                    <ul className="list-disc pl-6 space-y-1">
-                        <li><strong>Supabase:</strong> Authentication and data storage</li>
-                        <li><strong>Google IMA SDK:</strong> Ad delivery</li>
-                        <li><strong>PayPal/Wise:</strong> Prize payout processing</li>
-                        <li><strong>Offerwall providers:</strong> Task-based reward offers</li>
-                    </ul>
-                    <p>
-                        These services have their own privacy policies. We share only the minimum
-                        information necessary for them to function.
-                    </p>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">3. How We Use Your Information</h2>
+                        <ul className="list-disc space-y-2 pl-5">
+                            <li>To operate the lottery and process prize payouts</li>
+                            <li>To send transactional emails (winner notifications, payout confirmations)</li>
+                            <li>To detect and prevent fraud and bot activity</li>
+                            <li>To calculate and attribute referral rewards</li>
+                            <li>To improve the service and user experience</li>
+                        </ul>
+                        <p>We do not sell your personal information to third parties.</p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">4. Data Retention</h2>
-                    <p>
-                        Account data is retained as long as your account is active. Ad watch logs and
-                        game activity are retained for up to 1 year. Payout records are retained for
-                        tax and compliance purposes. You can request account deletion by contacting support.
-                    </p>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">4. Third-Party Services</h2>
+                        <ul className="list-disc space-y-2 pl-5">
+                            <li><strong className="text-white">Supabase:</strong> Authentication and data storage</li>
+                            <li><strong className="text-white">Google IMA SDK / Ad Manager:</strong> Ad delivery</li>
+                            <li><strong className="text-white">Resend:</strong> Transactional email delivery</li>
+                            <li><strong className="text-white">PayPal / Wise:</strong> Prize payout processing</li>
+                            <li><strong className="text-white">Offerwall providers:</strong> Task-based reward offers</li>
+                        </ul>
+                        <p>These services have their own privacy policies. We share only the minimum information necessary for them to function.</p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">5. Data Security</h2>
-                    <p>
-                        We use industry-standard security measures including encrypted connections (HTTPS),
-                        Row Level Security (RLS) on the database, and server-side validation. However,
-                        no system is 100% secure.
-                    </p>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">5. Advertising</h2>
+                        <p>
+                            Third-party ad networks may use cookies and similar tracking technologies to serve relevant ads and measure performance. You can opt out of personalized advertising at{' '}
+                            <a href="https://optout.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:text-yellow-300 transition-colors">optout.aboutads.info</a>.
+                        </p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">6. Your Rights</h2>
-                    <p>You have the right to:</p>
-                    <ul className="list-disc pl-6 space-y-1">
-                        <li>Access your personal data</li>
-                        <li>Request correction of inaccurate data</li>
-                        <li>Request deletion of your account and data</li>
-                        <li>Opt out of non-essential data collection</li>
-                    </ul>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">6. Data Retention</h2>
+                        <p>Account data is retained as long as your account is active. Ad watch logs and game activity are retained for up to 1 year. Payout records are kept for compliance purposes. You can request account deletion by contacting support.</p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">7. Cookies</h2>
-                    <p>
-                        We use essential cookies for authentication session management. We do not use
-                        third-party tracking cookies. Ad providers may set their own cookies during
-                        ad playback.
-                    </p>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">7. Data Security</h2>
+                        <p>We use HTTPS encryption, Row Level Security (RLS) on the database, and server-side validation. No system is 100% secure, but we follow industry best practices.</p>
+                    </section>
 
-                <section>
-                    <h2 className="text-lg font-semibold text-white">8. Changes to This Policy</h2>
-                    <p>
-                        We may update this privacy policy periodically. Changes will be posted on this page
-                        with an updated revision date.
-                    </p>
-                </section>
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">8. Your Rights</h2>
+                        <p>You may have the right to access, correct, or delete your personal data. To exercise these rights, contact us at <a href="mailto:support@burilar.com" className="text-yellow-400 hover:text-yellow-300 transition-colors">support@burilar.com</a>.</p>
+                    </section>
+
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">9. Cookies</h2>
+                        <p>We use essential cookies for authentication session management only. Ad providers may set their own cookies during ad playback.</p>
+                    </section>
+
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">10. Children&apos;s Privacy</h2>
+                        <p>LottoAds is not directed at anyone under 18. We do not knowingly collect data from minors. Contact us if you believe a minor has registered.</p>
+                    </section>
+
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">11. Changes to This Policy</h2>
+                        <p>We may update this policy periodically. Changes will be posted on this page with an updated effective date.</p>
+                    </section>
+
+                    <section className="space-y-3">
+                        <h2 className="text-base font-bold text-white">12. Contact</h2>
+                        <p>Privacy questions: <a href="mailto:support@burilar.com" className="text-yellow-400 hover:text-yellow-300 transition-colors">support@burilar.com</a></p>
+                    </section>
+
+                </div>
+
+                <div className="mt-12 border-t border-white/10 pt-8 text-center">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-6 py-3 font-bold text-black hover:brightness-110 transition-all shadow-lg shadow-yellow-500/20"
+                    >
+                        Back to LottoAds
+                    </Link>
+                </div>
             </div>
-        </main>
+        </div>
     );
 }
