@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -18,4 +19,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Suppresses source map upload logs during build
+  silent: true,
+
+  // Upload source maps for better error stack traces
+  // Requires SENTRY_ORG, SENTRY_PROJECT, and SENTRY_AUTH_TOKEN env vars
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Disable source map upload if credentials aren't set (dev/CI)
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+});

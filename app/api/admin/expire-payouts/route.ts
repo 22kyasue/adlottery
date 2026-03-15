@@ -4,7 +4,16 @@ import { verifyAdminOrCron } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
+// GET handler for Vercel Cron (cron jobs send GET requests)
+export async function GET(request: NextRequest) {
+    return expirePayouts(request);
+}
+
 export async function POST(request: NextRequest) {
+    return expirePayouts(request);
+}
+
+async function expirePayouts(request: NextRequest) {
     try {
         if (!verifyAdminOrCron(request)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

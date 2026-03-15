@@ -21,17 +21,21 @@ export function verifyAdminKey(authHeader: string | null): boolean {
 }
 
 /**
- * Verify either ADMIN_API_KEY (Bearer token) or CRON_SECRET (x-vercel-cron-secret header).
- * Use this on admin routes that are also triggered by Vercel cron jobs.
+ * Verify either ADMIN_API_KEY or CRON_SECRET.
+ * Vercel Cron sends: Authorization: Bearer <CRON_SECRET>
+ * Admin calls send:  Authorization: Bearer <ADMIN_API_KEY>
  */
 export function verifyAdminOrCron(request: Request): boolean {
     const authHeader = request.headers.get('authorization');
+
+    // Check ADMIN_API_KEY first
     if (verifyAdminKey(authHeader)) return true;
 
+    // Check CRON_SECRET from Authorization: Bearer header (Vercel Cron)
     const cronSecret = process.env.CRON_SECRET?.trim();
-    const cronHeader = request.headers.get('x-vercel-cron-secret');
-    if (cronSecret && cronHeader) {
-        return safeCompare(cronHeader, cronSecret);
+    if (cronSecret) {
+        const token = (authHeader ?? '').replace(/^bearer\s+/i, '').trim();
+        if (safeCompare(token, cronSecret)) return true;
     }
 
     return false;

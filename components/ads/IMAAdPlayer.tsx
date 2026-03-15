@@ -125,7 +125,7 @@ export function IMAAdPlayer({ onAdComplete, onAdError }: IMAAdPlayerProps) {
             );
 
             const adsRequest = new ima.AdsRequest();
-            adsRequest.adTagUrl = AD_CONFIG.TEST_AD_TAG_URL;
+            adsRequest.adTagUrl = AD_CONFIG.AD_TAG_URL;
 
             const width = adContainerRef.current.clientWidth || 640;
             const height = adContainerRef.current.clientHeight || 360;

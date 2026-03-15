@@ -1,12 +1,10 @@
 /**
  * Error monitoring and alerting utility.
- * Currently logs to console — replace with Sentry, DataDog, or similar.
- *
- * Integration steps for production:
- * 1. Install SDK: npm install @sentry/nextjs
- * 2. Add SENTRY_DSN to env
- * 3. Replace captureError/captureEvent with Sentry.captureException/captureMessage
+ * Uses Sentry for error tracking when NEXT_PUBLIC_SENTRY_DSN is configured,
+ * falls back to console logging otherwise.
  */
+
+import * as Sentry from '@sentry/nextjs';
 
 type Severity = 'info' | 'warning' | 'error' | 'fatal';
 
@@ -16,35 +14,76 @@ interface ErrorContext {
     extra?: Record<string, unknown>;
 }
 
+function toSentryScope(context?: ErrorContext): (scope: Sentry.Scope) => void {
+    return (scope) => {
+        if (context?.userId) scope.setUser({ id: context.userId });
+        if (context?.route) scope.setTag('route', context.route);
+        if (context?.extra) {
+            for (const [key, value] of Object.entries(context.extra)) {
+                scope.setExtra(key, value);
+            }
+        }
+    };
+}
+
+const SEVERITY_MAP: Record<Severity, Sentry.SeverityLevel> = {
+    info: 'info',
+    warning: 'warning',
+    error: 'error',
+    fatal: 'fatal',
+};
+
 export function captureError(error: Error | string, context?: ErrorContext): void {
     const message = error instanceof Error ? error.message : error;
     const stack = error instanceof Error ? error.stack : undefined;
 
-    // TODO: Replace with Sentry.captureException() or similar
+    // Always log to console for local dev / log drains
     console.error(`[monitor] ERROR: ${message}`, {
         ...context,
         stack,
         timestamp: new Date().toISOString(),
     });
+
+    if (error instanceof Error) {
+        Sentry.withScope((scope) => {
+            toSentryScope(context)(scope);
+            Sentry.captureException(error);
+        });
+    } else {
+        Sentry.withScope((scope) => {
+            toSentryScope(context)(scope);
+            Sentry.captureMessage(message, 'error');
+        });
+    }
 }
 
 export function captureEvent(message: string, severity: Severity = 'info', context?: ErrorContext): void {
-    // TODO: Replace with Sentry.captureMessage() or similar
     const logFn = severity === 'error' || severity === 'fatal' ? console.error : console.warn;
     logFn(`[monitor] ${severity.toUpperCase()}: ${message}`, {
         ...context,
         timestamp: new Date().toISOString(),
     });
+
+    Sentry.withScope((scope) => {
+        toSentryScope(context)(scope);
+        Sentry.captureMessage(message, SEVERITY_MAP[severity]);
+    });
 }
 
 /**
  * Alert for critical failures that need immediate attention.
- * In production, this should page on-call or send to Slack/PagerDuty.
+ * Sends to Sentry with fatal severity so it triggers alert rules.
  */
 export function alertCritical(message: string, context?: ErrorContext): void {
-    // TODO: Integrate with PagerDuty, Slack webhook, or similar
     console.error(`[CRITICAL ALERT] ${message}`, {
         ...context,
         timestamp: new Date().toISOString(),
+    });
+
+    Sentry.withScope((scope) => {
+        toSentryScope(context)(scope);
+        scope.setLevel('fatal');
+        scope.setTag('alert', 'critical');
+        Sentry.captureMessage(message, 'fatal');
     });
 }

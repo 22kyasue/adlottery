@@ -6,14 +6,25 @@ import { sendWinnerNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
+// GET handler for Vercel Cron (cron jobs send GET requests)
+export async function GET(request: NextRequest) {
+    return runDraw(request);
+}
+
 export async function POST(request: NextRequest) {
+    return runDraw(request);
+}
+
+async function runDraw(request: NextRequest) {
     try {
         if (!verifyAdminOrCron(request)) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Allow optional week_id override, default to current week
-        const body = await request.json().catch(() => ({}));
+        // Allow optional week_id override (POST body), default to current week
+        const body = request.method === 'POST'
+            ? await request.json().catch(() => ({}))
+            : {};
         const weekId = body.weekId || getCurrentWeekId();
 
         // Execute the draw via RPC
