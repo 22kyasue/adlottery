@@ -26,7 +26,7 @@ export async function POST() {
 
         if (rpcError) {
             console.error('play_scratch RPC error:', rpcError);
-            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to play scratch card. Please try again.' }, { status: 500 });
         }
 
         // 3. Interpret the RPC's JSONB return
@@ -59,6 +59,6 @@ export async function POST() {
 
     } catch (error) {
         console.error('Casino scratch API error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Something went wrong with scratch cards. Please try again.' }, { status: 500 });
     }
 }

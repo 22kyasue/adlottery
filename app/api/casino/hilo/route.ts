@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
         if (rpcError) {
             console.error('play_hilo RPC error:', rpcError);
-            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to play Hi-Lo. Please try again.' }, { status: 500 });
         }
 
         // 4. Interpret the RPC's JSONB return
@@ -90,6 +90,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Casino hi-lo API error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Something went wrong with Hi-Lo. Please try again.' }, { status: 500 });
     }
 }

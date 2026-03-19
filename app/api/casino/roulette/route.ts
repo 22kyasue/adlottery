@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
         if (rpcError) {
             console.error('play_roulette_multi RPC error:', rpcError);
-            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to spin the wheel. Please try again.' }, { status: 500 });
         }
 
         const result = rpcResult as Record<string, unknown>;
@@ -105,6 +105,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Casino roulette API error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Something went wrong with roulette. Please try again.' }, { status: 500 });
     }
 }

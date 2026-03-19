@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
     try {
@@ -9,6 +10,11 @@ export async function POST(request: NextRequest) {
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const rl = checkRateLimit(user.id, RATE_LIMITS.casino);
+        if (!rl.allowed) {
+            return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
         }
 
         const body = await request.json();
@@ -28,7 +34,7 @@ export async function POST(request: NextRequest) {
 
         if (rpcError) {
             console.error('blackjack_deal RPC error:', rpcError);
-            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to deal cards. Please try again.' }, { status: 500 });
         }
 
         const result = rpcResult as Record<string, unknown>;
@@ -62,6 +68,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('Casino blackjack deal API error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Something went wrong starting the game. Please try again.' }, { status: 500 });
     }
 }

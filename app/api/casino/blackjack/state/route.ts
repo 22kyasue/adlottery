@@ -18,7 +18,7 @@ export async function GET() {
 
         if (rpcError) {
             console.error('blackjack_state RPC error:', rpcError);
-            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to load game state. Please refresh.' }, { status: 500 });
         }
 
         const result = rpcResult as Record<string, unknown>;
@@ -35,6 +35,6 @@ export async function GET() {
 
     } catch (error) {
         console.error('Casino blackjack state API error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Something went wrong loading game state. Please refresh.' }, { status: 500 });
     }
 }
